@@ -372,6 +372,17 @@ if __name__ == "__main__":
     n_factors_list = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
     batch_size = 64
     
+    # test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, pin_memory=True)
+    # train_loader = DataLoader(base_dataset, batch_size=64, shuffle=True, pin_memory=True)
+    # # Initialize model
+    # mf = MatrixFactorization(len(base_dataset.users), len(base_dataset.items), n_factors=40)
+    
+    # Evaluate on test set using the loader
+    # mf.train_model(train_loader=train_loader, n_epochs=100)  # Set model to training mode for evaluation
+    # test_loss = mf.evaluate(test_loader)
+    # test_rmse = np.sqrt(test_loss)
+    # print(f"Initial test RMSE: {test_rmse:.4f}")
+    
     print("\nStarting K-fold cross-validation parameter search...")
     best_params = k_fold_cv_parameter_search(
         base_dataset, 
@@ -397,14 +408,14 @@ if __name__ == "__main__":
     print(f"Test MSE: {test_loss:.4f}")
     print(f"Test RMSE: {test_rmse:.4f}")
     
-    print("\n=== Sample Recommendations ===")
-    sample_users = [1, 100, 200]
-    for user_id in sample_users:
-        try:
-            top_recommendations = calculate_top_n_recommendations(final_model, base_dataset, user_id, n=5)
-            print(f"\nTop 5 recommendations for User {user_id}:")
-            for item_id, pred_rating in top_recommendations:
-                movie_title = items[items['movie id'] == item_id]['movie title'].values[0]
-                print(f"Movie: {movie_title} (ID: {item_id}), Predicted Rating: {pred_rating:.2f}")
-        except Exception as e:
-            print(f"Could not generate recommendations for User {user_id}: {str(e)}")
+    # print("\n=== Sample Recommendations ===")
+    # sample_users = [1, 100, 200]
+    # for user_id in sample_users:
+    #     try:
+    #         top_recommendations = calculate_top_n_recommendations(final_model, base_dataset, user_id, n=5)
+    #         print(f"\nTop 5 recommendations for User {user_id}:")
+    #         for item_id, pred_rating in top_recommendations:
+    #             movie_title = items[items['movie id'] == item_id]['movie title'].values[0]
+    #             print(f"Movie: {movie_title} (ID: {item_id}), Predicted Rating: {pred_rating:.2f}")
+    #     except Exception as e:
+    #         print(f"Could not generate recommendations for User {user_id}: {str(e)}")

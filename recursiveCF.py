@@ -274,4 +274,5 @@ if __name__ == "__main__":
     rcf = RecursiveCF(users, items, ratings_base, ratings_test)
     # predict = rcf.predict_rating(2, 281, k=20, depth=3)
     # print("Predicted rating for user 2 on item 281:", predict)
-    rmse = rcf.find_optimal_k(n_jobs=4)
+    # rmse = rcf.find_optimal_k(n_jobs=4)
+    

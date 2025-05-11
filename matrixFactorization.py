@@ -161,13 +161,22 @@ class MatrixFactorization(torch.nn.Module):
         else:
             return avg_train_loss, train_losses, None
 
-    def evaluate(self, data_loader, criterion=None):
+    def evaluate(self, data_loader_or_dataset, criterion=None):
+        """
+        Evaluate the model on either a dataset or a data loader
+        """
         if criterion is None:
             criterion = torch.nn.MSELoss()
-            
+        
         self.eval()
         total_loss = 0
         total_samples = 0
+        
+        # Convert dataset to dataloader if necessary
+        if isinstance(data_loader_or_dataset, Dataset):
+            data_loader = DataLoader(data_loader_or_dataset, batch_size=64, shuffle=False, pin_memory=True)
+        else:
+            data_loader = data_loader_or_dataset
         
         with torch.no_grad():
             for user, item, rating in data_loader:
@@ -326,11 +335,12 @@ def calculate_top_n_recommendations(model, dataset, user_id, n=10):
     
     user_idx = dataset.user_to_index[user_id]
     
+    # Fix: We need to get the item IDs from the dataset's item_to_index dictionary
+    all_items = set(dataset.item_to_index.keys())
     rated_items = set(dataset.ratings[dataset.ratings['user_id'] == user_id]['item_id'])
-    all_items = set(dataset.items)
     unrated_items = list(all_items - rated_items)
     
-    unrated_indices = [dataset.item_to_index[item] for item in unrated_items if item in dataset.item_to_index]
+    unrated_indices = [dataset.item_to_index[item] for item in unrated_items]
     
     if not unrated_indices:
         return []
@@ -353,35 +363,49 @@ if __name__ == "__main__":
     base_dataset = MovieLensDataset(ratings_base)
     test_dataset = MovieLensDataset(ratings_test)
     
-    n_factors_list = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
-    batch_size = 64  
+    # Create test_loader instead of passing the dataset directly
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, pin_memory=True)
+    train_loader = DataLoader(base_dataset, batch_size=64, shuffle=True, pin_memory=True)
+    # Initialize model
+    # n_factors=5 is best
+    mf = MatrixFactorization(len(base_dataset.users), len(base_dataset.items), n_factors=5)
     
-    # Perform K-fold cross-validation to find best parameters
-    print("\nStarting K-fold cross-validation parameter search...")
-    best_params = k_fold_cv_parameter_search(
-        base_dataset, 
-        n_factors_list=n_factors_list,
-        batch_size=batch_size,
-        n_folds=3,  # Using 3 folds for faster execution
-        n_epochs=5  # Fewer epochs during parameter search
-    )
+    # Evaluate on test set using the loader
+    mf.train_model(train_loader=train_loader, n_epochs=100)  # Set model to training mode for evaluation
+    test_loss = mf.evaluate(test_loader)
+    test_rmse = np.sqrt(test_loss)
+    print(f"Initial test RMSE: {test_rmse:.4f}")
     
-    print("\n=== Best Parameters ===")
-    print(f"n_factors: {best_params['n_factors']}")
-    print(f"validation loss (MSE): {best_params['avg_val_loss']:.4f}")
-    print(f"validation loss (RMSE): {best_params['rmse']:.4f}")
+    # # Uncomment to run parameter search
+    # n_factors_list = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
+    # batch_size = 64  
     
-    # Train final model with best parameters and evaluate on test set
-    final_model, test_loss, test_rmse = train_and_evaluate_final_model(
-        base_dataset, test_dataset, best_params, batch_size=batch_size
-    )
+    # # Perform K-fold cross-validation to find best parameters
+    # print("\nStarting K-fold cross-validation parameter search...")
+    # best_params = k_fold_cv_parameter_search(
+    #     base_dataset, 
+    #     n_factors_list=n_factors_list,
+    #     batch_size=batch_size,
+    #     n_folds=3,  # Using 3 folds for faster execution
+    #     n_epochs=5  # Fewer epochs during parameter search
+    # )
     
-    total_time = time.time() - total_start_time
-    print(f"\nTotal execution time: {total_time/60:.2f} minutes")
+    # print("\n=== Best Parameters ===")
+    # print(f"n_factors: {best_params['n_factors']}")
+    # print(f"validation loss (MSE): {best_params['avg_val_loss']:.4f}")
+    # print(f"validation loss (RMSE): {best_params['rmse']:.4f}")
     
-    print("\n=== Final Results ===")
-    print(f"Test MSE: {test_loss:.4f}")
-    print(f"Test RMSE: {test_rmse:.4f}")
+    # # Train final model with best parameters and evaluate on test set
+    # final_model, test_loss, test_rmse = train_and_evaluate_final_model(
+    #     base_dataset, test_dataset, best_params, batch_size=batch_size
+    # )
+    
+    # total_time = time.time() - total_start_time
+    # print(f"\nTotal execution time: {total_time/60:.2f} minutes")
+    
+    # print("\n=== Final Results ===")
+    # print(f"Test MSE: {test_loss:.4f}")
+    # print(f"Test RMSE: {test_rmse:.4f}")
     
     # print("\n=== Sample Recommendations ===")
     # sample_users = [1, 100, 200]
