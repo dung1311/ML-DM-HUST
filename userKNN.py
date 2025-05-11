@@ -220,7 +220,7 @@ class UserColaborativeFiltering:
         progress_step = max(1, total // 10)
         
         with tqdm(total=total, desc="Evaluating", ncols=100, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]") as pbar:
-            for _, row in self.ratings_test.iterrows():
+            for _, row in eval_set.iterrows():
                 user_id, item_id, actual_rating = row['user_id'], row['item_id'], row['rating']
                 predicted_rating = self.predict_rating(user_id, item_id, k)
 
