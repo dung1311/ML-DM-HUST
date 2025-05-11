@@ -119,7 +119,7 @@ data/
 ### Chạy Code
 1. Lọc dựa trên nội dung:
 ```bash
-python test.py
+python contentBased.py
 ```
 
 2. Phân tích ma trận:
