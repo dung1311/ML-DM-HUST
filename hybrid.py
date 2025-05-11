@@ -152,7 +152,8 @@ if __name__ == "__main__":
     print("Number of items:", items.shape[0])
     
     hybrid = HybridRecommender(users, items, ratings_base, ratings_test)
-    print("Hybrid prediction for user 1 and item 1:", hybrid.predict_rating(2, 281))
-    print(hybrid.evaluate_model(ratings_test, alpha=0.5, metric='rmse'))
-    alpha, rmse = hybrid.find_optimal_alpha_with_cv(alpha_values=None, n_folds=5, save_plot=True, plot_name="alpha_vs_rmse")
-    print(f"Optimal alpha: {alpha} with RMSE: {rmse:.4f}")
+    # print("Hybrid prediction for user 1 and item 1:", hybrid.predict_rating(2, 281))
+    # print(hybrid.evaluate_model(ratings_test, alpha=0.5, metric='rmse'))
+    # alpha, rmse = hybrid.find_optimal_alpha_with_cv(alpha_values=None, n_folds=5, save_plot=True, plot_name="alpha_vs_rmse")
+    # print(f"Optimal alpha: {alpha} with RMSE: {rmse:.4f}")
+    print(hybrid.evaluate_model(ratings_test, alpha=0.7))

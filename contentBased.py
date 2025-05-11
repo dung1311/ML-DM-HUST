@@ -83,7 +83,7 @@ class ContentFiltering:
         plt.show()
 
         # Save the results
-        np.save(f'validation_{algo}_results.npy', mean_errors)
+        # np.save(f'validation_{algo}_results.npy', mean_errors)
         return alphas[np.argmin(mean_errors)], min(mean_errors)
 
     def predict_rating(self, user_id, item_id):
@@ -98,7 +98,7 @@ class ContentFiltering:
         y_true = self.ratings_test['rating'].values
         y_pred = [self.predict_rating(uid, iid) for uid, iid in zip(self.ratings_test['user_id'].values, self.ratings_test['item_id'].values)]
         y_pred = np.array(y_pred)
-        rmse = root_mean_squared_error(y_true, y_pred, squared=False)
+        rmse = root_mean_squared_error(y_true, y_pred)
         print(f"RMSE: {rmse}")
         return rmse
 
@@ -120,9 +120,11 @@ if __name__ == '__main__':
     # optimal_alpha, min_error = cf.validate(algo='ridge', alpha_range=(0.1, 10, 20))
     # print(f'Optimal alpha for Ridge: {optimal_alpha} with MSE: {min_error}')
 
-    optimal_alpha, min_error = cf.validate(algo='lasso', alpha_range=(0.1, 10, 20))
-    print(f'Optimal alpha for Lasso: {optimal_alpha} with MSE: {min_error}')
+    # optimal_alpha, min_error = cf.validate(algo='ridge', alpha_range=(0.1, 10, 20))
+    # print(f'Optimal alpha for Lasso: {optimal_alpha} with MSE: {min_error}')
     # predicted_matrix = cf.train()
     # # print(cf.predict_rating(2, 281))
     # print(predicted_matrix.shape)
     # print(predicted_matrix[2][281])
+    cf.train(algo='ridge', alpha=8.44)
+    print(cf.evaluate())

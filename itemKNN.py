@@ -357,12 +357,13 @@ if __name__ == "__main__":
     items = pd.read_csv('./data/ml-100k/u.item', sep='|', names=i_cols, encoding='latin-1')
     print("Number of items:", items.shape[0])
     
-    # itemCF = ItemColaborativeFiltering(users, items, ratings_base, ratings_test, similarity_type='pearson')
+    itemCF = ItemColaborativeFiltering(users, items, ratings_base, ratings_test, similarity_type='pearson')
     itemCF2 = ItemColaborativeFiltering(users, items, ratings_base, ratings_test, similarity_type='cosine')
     # print("Predicting rating for user 2 and item 281:", itemCF.predict_rating(2, 281, k=20))
     # print("Predicting rating for user 2 and item 281 with cosine:", itemCF2.predict_rating(2, 281, k=20))
     # print("pearson", itemCF.evaluate_model(ratings_test, k=20, metric='rmse'))
     # print("cosine", itemCF2.evaluate_model(ratings_test, k=20, metric='rmse'))
     # itemCF.find_optimal_k_with_cv(k_values=list(range(10, 50, 5)), n_folds=5, save_plot=True, plot_name='itemKNN_pearson_100k')
-    itemCF2.find_optimal_k_with_cv(k_values=list(range(10, 55, 5)), save_plot=True, plot_name='itemKNN_cosine_100k')
+    # itemCF2.find_optimal_k_with_cv(k_values=list(range(10, 55, 5)), save_plot=True, plot_name='itemKNN_cosine_100k')
+    print(itemCF.evaluate_model(ratings_test, k=45, metric='rmse'))
     
