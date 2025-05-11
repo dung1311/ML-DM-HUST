@@ -47,7 +47,7 @@ data/
 ### Running the Code
 1. Content-based Filtering:
 ```bash
-python test.py
+python contentBased.py
 ```
 
 2. Matrix Factorization:
