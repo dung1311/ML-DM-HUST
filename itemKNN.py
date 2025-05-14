@@ -338,32 +338,64 @@ class ItemColaborativeFiltering:
         return predictions[:n]
 
 if __name__ == "__main__":
-    u_cols = ["user_id", "age", "sex", "occupation", "zip_code"]
-    users = pd.read_csv("./data/ml-100k/u.user", sep="|", header=None, names=u_cols, encoding="latin-1")
+    # u_cols = ["user_id", "age", "sex", "occupation", "zip_code"]
+    # users = pd.read_csv("./data/ml-100k/u.user", sep="|", header=None, names=u_cols, encoding="latin-1")
+    # print("Number of users:", users.shape[0])
+
+    # #rates
+    # r_cols = ["user_id", "item_id", "rating", "unix_timestamp"]
+    # ratings_base = pd.read_csv("./data/ml-100k/ua.base", sep="\t", header=None, names=r_cols, encoding="latin-1")
+    # ratings_test = pd.read_csv("./data/ml-100k/ua.test", sep="\t", header=None, names=r_cols, encoding="latin-1")
+    # print("Number of ratings in base set:", ratings_base.shape[0])
+    # print("Number of ratings in test set:", ratings_test.shape[0])
+
+    # #items
+    # i_cols = ['movie id', 'movie title' ,'release date','video release date', 'IMDb URL', 'unknown', 'Action', 'Adventure',
+    # 'Animation', 'Children\'s', 'Comedy', 'Crime', 'Documentary', 'Drama', 'Fantasy',
+    # 'Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War', 'Western']
+
+    # items = pd.read_csv('./data/ml-100k/u.item', sep='|', names=i_cols, encoding='latin-1')
+    # print("Number of items:", items.shape[0])
+    
+    # itemCF = ItemColaborativeFiltering(users, items, ratings_base, ratings_test, similarity_type='pearson')
+    # itemCF2 = ItemColaborativeFiltering(users, items, ratings_base, ratings_test, similarity_type='cosine')
+    # # print("Predicting rating for user 2 and item 281:", itemCF.predict_rating(2, 281, k=20))
+    # # print("Predicting rating for user 2 and item 281 with cosine:", itemCF2.predict_rating(2, 281, k=20))
+    # # print("pearson", itemCF.evaluate_model(ratings_test, k=20, metric='rmse'))
+    # # print("cosine", itemCF2.evaluate_model(ratings_test, k=20, metric='rmse'))
+    # # itemCF.find_optimal_k_with_cv(k_values=list(range(10, 50, 5)), n_folds=5, save_plot=True, plot_name='itemKNN_pearson_100k')
+    # # itemCF2.find_optimal_k_with_cv(k_values=list(range(10, 55, 5)), save_plot=True, plot_name='itemKNN_cosine_100k')
+    # print(itemCF.evaluate_model(ratings_test, k=45, metric='rmse'))
+    
+
+    # Load ml-1m dataset
+    print("Loading ml-1m dataset...")
+    
+    # Load users
+    users = pd.read_csv("./data/ml-1m/users.dat", sep="::", header=None, 
+                       names=["user_id", "gender", "age", "occupation", "zip_code"],
+                       engine='python', encoding='latin-1')
     print("Number of users:", users.shape[0])
 
-    #rates
-    r_cols = ["user_id", "item_id", "rating", "unix_timestamp"]
-    ratings_base = pd.read_csv("./data/ml-100k/ua.base", sep="\t", header=None, names=r_cols, encoding="latin-1")
-    ratings_test = pd.read_csv("./data/ml-100k/ua.test", sep="\t", header=None, names=r_cols, encoding="latin-1")
+    # Load ratings
+    ratings = pd.read_csv("./data/ml-1m/ratings.dat", sep="::", header=None,
+                         names=["user_id", "item_id", "rating", "timestamp"],
+                         engine='python', encoding='latin-1')
+    print("Total number of ratings:", ratings.shape[0])
+
+    # Load movies
+    items = pd.read_csv("./data/ml-1m/movies.dat", sep="::", header=None,
+                       names=["movie id", "movie title", "genres"],
+                       engine='python', encoding='latin-1')
+    print("Number of items:", items.shape[0])
+
+    # Split ratings into train and test (80-20)
+    from sklearn.model_selection import train_test_split
+    ratings_base, ratings_test = train_test_split(ratings, test_size=0.2, random_state=42)
     print("Number of ratings in base set:", ratings_base.shape[0])
     print("Number of ratings in test set:", ratings_test.shape[0])
 
-    #items
-    i_cols = ['movie id', 'movie title' ,'release date','video release date', 'IMDb URL', 'unknown', 'Action', 'Adventure',
-    'Animation', 'Children\'s', 'Comedy', 'Crime', 'Documentary', 'Drama', 'Fantasy',
-    'Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War', 'Western']
-
-    items = pd.read_csv('./data/ml-100k/u.item', sep='|', names=i_cols, encoding='latin-1')
-    print("Number of items:", items.shape[0])
-    
+    # Create and evaluate model
     itemCF = ItemColaborativeFiltering(users, items, ratings_base, ratings_test, similarity_type='pearson')
-    itemCF2 = ItemColaborativeFiltering(users, items, ratings_base, ratings_test, similarity_type='cosine')
-    # print("Predicting rating for user 2 and item 281:", itemCF.predict_rating(2, 281, k=20))
-    # print("Predicting rating for user 2 and item 281 with cosine:", itemCF2.predict_rating(2, 281, k=20))
-    # print("pearson", itemCF.evaluate_model(ratings_test, k=20, metric='rmse'))
-    # print("cosine", itemCF2.evaluate_model(ratings_test, k=20, metric='rmse'))
-    # itemCF.find_optimal_k_with_cv(k_values=list(range(10, 50, 5)), n_folds=5, save_plot=True, plot_name='itemKNN_pearson_100k')
-    # itemCF2.find_optimal_k_with_cv(k_values=list(range(10, 55, 5)), save_plot=True, plot_name='itemKNN_cosine_100k')
-    print(itemCF.evaluate_model(ratings_test, k=45, metric='rmse'))
-    
+    rmse = itemCF.evaluate_model(ratings_test, k=45, metric='rmse')
+    print("RMSE for k=45:", rmse)
