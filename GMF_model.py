@@ -48,20 +48,19 @@ test_dataset = MovieLensDataset(
 
 # 3. Định nghĩa GMF Model
 class GMF(nn.Module):
-    def __init__(self, num_users, num_items, embedding_dim=64):
-        super().__init__()
-        self.user_embed = nn.Embedding(num_users, embedding_dim)
-        self.item_embed = nn.Embedding(num_items, embedding_dim)
-        self.output = nn.Sequential(
-            nn.Linear(embedding_dim, 1),
-            nn.Sigmoid()
-        )
-        
+    def __init__(self, num_users, num_items, embed_dim):
+        super(GMF, self).__init__()
+        self.user_embedding = nn.Embedding(num_users, embed_dim)
+        self.item_embedding = nn.Embedding(num_items, embed_dim)
+        self.output = nn.Linear(embed_dim, 1)
+
     def forward(self, user, item):
-        user_vec = self.user_embed(user)
-        item_vec = self.item_embed(item)
-        interaction = user_vec * item_vec  
-        return self.output(interaction).squeeze()
+        user_embed = self.user_embedding(user)
+        item_embed = self.item_embedding(item)
+        x = user_embed * item_embed
+        out = self.output(x)
+        return out.view(-1)
+
 
 
 
