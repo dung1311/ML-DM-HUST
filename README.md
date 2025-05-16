@@ -1,6 +1,6 @@
 # Movie Recommendation System
 
-This project implements various recommendation algorithms using both MovieLens datasets (ml-100k and ml-1m). The system includes collaborative filtering (user-based and item-based), matrix factorization, SVD, and hybrid approaches.
+This project implements various recommendation algorithms using both MovieLens datasets (ml-100k and ml-1m). The system includes collaborative filtering (user-based and item-based), matrix factorization, SVD, hybrid approaches, and deep learning models.
 
 ## Datasets
 
@@ -163,6 +163,114 @@ python hybrid.py
 # Modify the data loading section to use ml-100k paths and separators
 ```
 
+### 6. Generalized Matrix Factorization (GMF_model.py)
+
+This implementation uses a generalized matrix factorization model for collaborative filtering.
+
+#### Running the Model
+```python
+python GMF_model.py
+```
+
+#### Model Parameters
+- `embed_dim`: Dimension of user and item embeddings (default=16)
+- `learning_rate`: Learning rate for optimization (default=0.001)
+- `weight_decay`: L2 regularization parameter (default=1e-4)
+- `batch_size`: Batch size for training (default=128)
+- `epochs`: Number of training epochs (default=100)
+
+#### Evaluation
+The model is evaluated using:
+- RMSE (Root Mean Square Error)
+- Training and validation loss curves
+
+#### Validation
+- Uses k-fold cross-validation to find optimal embedding dimension
+- Implements early stopping to prevent overfitting
+- Saves training/validation loss plots in 'plots' directory
+
+### 7. Multi-Layer Perceptron (MLP_model.py)
+
+This implementation uses a deep neural network for collaborative filtering.
+
+#### Running the Model
+```python
+python MLP_model.py
+```
+
+#### Model Parameters
+- `embedding_dim`: Dimension of user and item embeddings (default=64)
+- `hidden_dims`: List of hidden layer dimensions (default=[128,64,32])
+- `learning_rate`: Learning rate for optimization (default=0.001)
+- `batch_size`: Batch size for training (default=1024)
+- `epochs`: Number of training epochs (default=20)
+
+#### Evaluation
+The model is evaluated using:
+- Binary Cross Entropy Loss
+- Training and validation loss curves
+
+#### Validation
+- Uses k-fold cross-validation to find optimal architecture
+- Implements early stopping to prevent overfitting
+- Saves training/validation loss plots in 'plots' directory
+
+### 8. Neural Collaborative Filtering (NeuMF_model.py)
+
+This implementation combines GMF and MLP approaches using a neural network architecture.
+
+#### Running the Model
+```python
+python NeuMF_model.py
+```
+
+#### Model Parameters
+- `num_factors`: Number of latent factors (default=8)
+- `nums_hiddens`: List of hidden layer dimensions (default=[128,64])
+- `learning_rate`: Learning rate for optimization (default=0.0001)
+- `weight_decay`: L2 regularization parameter (default=1e-3)
+- `batch_size`: Batch size for training (default=1024)
+- `epochs`: Number of training epochs (default=50)
+
+#### Evaluation
+The model is evaluated using:
+- RMSE (Root Mean Square Error)
+- Training and validation loss curves
+
+#### Validation
+- Uses k-fold cross-validation to find optimal architecture
+- Implements early stopping to prevent overfitting
+- Saves training/validation loss plots in 'plots' directory
+
+### 9. Convolutional Sequence Model (caser_rating_rmse.py)
+
+This implementation uses a convolutional neural network to capture sequential patterns in user-item interactions.
+
+#### Running the Model
+```python
+python caser_rating_rmse.py
+```
+
+#### Model Parameters
+- `num_factors`: Number of latent factors (default=10)
+- `L`: Sequence length (default=5)
+- `d`: Number of horizontal filters (default=16)
+- `d_prime`: Number of vertical filters (default=4)
+- `drop_ratio`: Dropout ratio (default=0.05)
+- `learning_rate`: Learning rate for optimization (default=0.001)
+- `batch_size`: Batch size for training (default=512)
+- `epochs`: Number of training epochs (default=20)
+
+#### Evaluation
+The model is evaluated using:
+- RMSE (Root Mean Square Error)
+- Training and validation loss curves
+
+#### Validation
+- Uses k-fold cross-validation to find optimal architecture
+- Implements early stopping to prevent overfitting
+- Saves training/validation loss plots in 'plots' directory
+
 ## Common Functions Across Files
 
 ### Data Loading for ml-1m
@@ -257,11 +365,28 @@ for movie_title, pred_rating in recommendations:
 │       ├── ratings.dat
 │       └── movies.dat
 ├── plots/
+│   ├── userKNN_rmse.png
+│   ├── itemKNN_rmse.png
+│   ├── matrixFactorization_loss.png
+│   ├── svd_loss.png
+│   ├── hybrid_rmse.png
+│   ├── gmf_validation.png
+│   ├── mlp_validation.png
+│   ├── neumf_validation.png
+│   └── caser_validation.png
 ├── userKNN.py
 ├── itemKNN.py
 ├── matrixFactorization.py
 ├── svd.py
 ├── hybrid.py
+├── GMF_model.py
+├── valid_gmf_model.py
+├── MLP_model.py
+├── valid_mlp_model.py
+├── NeuMF_model.py
+├── valid_NeuMF_model.py
+├── caser_rating_rmse.py
+├── caser_hyperparam_search.py
 ├── requirements.txt
 └── README.md
 ```
@@ -413,3 +538,133 @@ def calculate_mae(predictions, actual):
 5. Use early stopping when training deep learning models
 6. Compare results across different parameter values
 7. Use the same random seed for reproducibility
+
+## Model Validation and Tuning
+
+### Cross-Validation
+All models use k-fold cross-validation (default k=5) to:
+1. Find optimal hyperparameters
+2. Prevent overfitting
+3. Get more reliable performance estimates
+
+### Hyperparameter Tuning
+Each model has specific hyperparameters that can be tuned:
+
+1. User-based CF:
+   - `k`: Number of neighbors (try values: 5, 10, 20, 30, 40, 50)
+   - `similarity_type`: 'pearson' or 'cosine'
+
+2. Item-based CF:
+   - `k`: Number of neighbors (try values: 5, 10, 20, 30, 40, 50)
+   - `similarity_type`: 'pearson' or 'cosine'
+
+3. Matrix Factorization:
+   - `n_factors`: Number of latent factors (try values: 5, 10, 20, 30, 40)
+   - `learning_rate`: Try values: 0.001, 0.01, 0.1
+   - `weight_decay`: Try values: 0.0001, 0.001, 0.01
+
+4. SVD:
+   - `n_factors`: Number of latent factors (try values: 5, 10, 20, 30, 40)
+   - `learning_rate`: Try values: 0.001, 0.01, 0.1
+   - `weight_decay`: Try values: 0.0001, 0.001, 0.01
+
+5. Hybrid:
+   - `alpha`: Weight for user-based predictions (try values: 0.1 to 0.9 in steps of 0.1)
+   - `k`: Number of neighbors (try values: 5, 10, 20, 30, 40, 50)
+
+6. GMF:
+   - `embedding_dim`: Try values: 4, 8, 16, 32
+   - `learning_rate`: Try values: 1e-4, 5e-4, 1e-3, 5e-3
+   - `batch_size`: Try values: 32, 64, 128
+   - `weight_decay`: Try values: 0, 1e-5, 1e-4, 1e-3
+   - `epochs`: Try values: 20, 30, 50
+
+7. MLP:
+   - `embedding_dim`: Try values: 4, 8, 16, 32
+   - `hidden_units`: Try combinations: [64,32], [128,64], [64,32,16], [128,64,32]
+   - `learning_rate`: Try values: 1e-4, 5e-4, 1e-3, 5e-3
+   - `batch_size`: Try values: 64, 128, 256
+   - `weight_decay`: Try values: 0, 1e-5, 1e-4, 1e-3
+   - `dropout`: Try values: 0.0, 0.2, 0.4
+   - `epochs`: Try values: 20, 50, 100
+
+8. NeuMF:
+   - `num_factors`: Try values: 8, 16, 32, 64
+   - `nums_hiddens`: Try combinations: [64,32], [128,64], [64,32,16], [128,64,32], [256,128,64,32]
+   - `learning_rate`: Try values: 1e-4, 5e-4, 1e-3, 5e-3
+   - `weight_decay`: Try values: 0, 1e-5, 1e-4, 1e-3
+   - `epochs`: Try values: 20, 50, 100
+
+9. Caser:
+   - `num_factors`: Try values: 8, 16, 32, 64
+   - `L`: Try values: 3, 5, 7
+   - `d`: Try values: 8, 16, 32
+   - `d_prime`: Try values: 4, 8, 16
+   - `drop_ratio`: Try values: 0.1, 0.2, 0.3, 0.5
+   - `learning_rate`: Try values: 0.001, 0.005, 0.01
+   - `batch_size`: Try values: 164, 128, 256
+   - `weight_decay`: Try values: 0, 1e-5, 1e-4, 1e-3
+   - `epochs`: Try values: 20, 50, 100
+
+### Early Stopping
+All deep learning models implement early stopping to prevent overfitting:
+- Monitors validation loss
+- Stops training if validation loss doesn't improve for specified number of epochs
+- Saves best model state
+
+### Performance Visualization
+All models generate plots to visualize performance:
+- RMSE vs hyperparameter values
+- Training and validation loss curves
+- Plots are saved in the 'plots' directory
+
+## Notes
+
+1. Models can use either ml-100k or ml-1m dataset
+2. GPU acceleration is used if available (PyTorch models)
+3. Results are saved in the 'plots' directory
+4. Each model implements caching for similarity calculations to improve performance
+5. The hybrid model combines the strengths of user-based and item-based approaches
+6. Deep learning models (GMF, MLP, NeuMF, Caser) require PyTorch
+7. All models support both explicit and implicit feedback
+
+## Directory Structure
+
+```
+.
+├── data/
+│   ├── ml-100k/
+│   │   ├── u.user
+│   │   ├── u.item
+│   │   ├── ua.base
+│   │   └── ua.test
+│   └── ml-1m/
+│       ├── users.dat
+│       ├── ratings.dat
+│       └── movies.dat
+├── plots/
+│   ├── userKNN_rmse.png
+│   ├── itemKNN_rmse.png
+│   ├── matrixFactorization_loss.png
+│   ├── svd_loss.png
+│   ├── hybrid_rmse.png
+│   ├── gmf_validation.png
+│   ├── mlp_validation.png
+│   ├── neumf_validation.png
+│   └── caser_validation.png
+├── userKNN.py
+├── itemKNN.py
+├── matrixFactorization.py
+├── svd.py
+├── hybrid.py
+├── GMF_model.py
+├── valid_gmf_model.py
+├── MLP_model.py
+├── valid_mlp_model.py
+├── NeuMF_model.py
+├── valid_NeuMF_model.py
+├── caser_rating_rmse.py
+├── caser_hyperparam_search.py
+├── requirements.txt
+└── README.md
+```
