@@ -360,61 +360,88 @@ def calculate_top_n_recommendations(model, dataset, user_id, n=10):
 if __name__ == "__main__":
     total_start_time = time.time()
     
+    # Comment out ml-100k code
+    """
+    u_cols = ["user_id", "age", "sex", "occupation", "zip_code"]
+    users = pd.read_csv("./data/ml-100k/u.user", sep="|", header=None, names=u_cols, encoding="latin-1")
+    print("Number of users:", users.shape[0])
+
+    # Ratings
+    r_cols = ["user_id", "item_id", "rating", "unix_timestamp"]
+    ratings_base = pd.read_csv("./data/ml-100k/ua.base", sep="\t", header=None, names=r_cols, encoding="latin-1")
+    ratings_test = pd.read_csv("./data/ml-100k/ua.test", sep="\t", header=None, names=r_cols, encoding="latin-1")
+    print("Number of ratings in base set:", ratings_base.shape[0])
+    print("Number of ratings in test set:", ratings_test.shape[0])
+
+    # Items
+    i_cols = ['movie id', 'movie title', 'release date', 'video release date', 'IMDb URL', 'unknown', 'Action', 'Adventure',
+    'Animation', 'Children\'s', 'Comedy', 'Crime', 'Documentary', 'Drama', 'Fantasy', 'Film-Noir', 'Horror', 'Musical', 'Mystery',
+    'Romance', 'Sci-Fi', 'Thriller', 'War', 'Western']
+    items = pd.read_csv('./data/ml-100k/u.item', sep='|', names=i_cols, encoding='latin-1')
+    print("Number of items:", items.shape[0])
+    """
+
+    # Load ml-1m dataset
+    print("Loading ml-1m dataset...")
+    
+    # Load users
+    users = pd.read_csv("./data/ml-1m/users.dat", sep="::", header=None, 
+                       names=["user_id", "gender", "age", "occupation", "zip_code"],
+                       engine='python', encoding='latin-1')
+    print("Number of users:", users.shape[0])
+
+    # Load ratings
+    ratings = pd.read_csv("./data/ml-1m/ratings.dat", sep="::", header=None,
+                         names=["user_id", "item_id", "rating", "timestamp"],
+                         engine='python', encoding='latin-1')
+    print("Total number of ratings:", ratings.shape[0])
+
+    # Load movies
+    items = pd.read_csv("./data/ml-1m/movies.dat", sep="::", header=None,
+                       names=["movie id", "movie title", "genres"],
+                       engine='python', encoding='latin-1')
+    print("Number of items:", items.shape[0])
+
+    # Split ratings into train and test (80-20)
+    from sklearn.model_selection import train_test_split
+    ratings_base, ratings_test = train_test_split(ratings, test_size=0.2, random_state=42)
+    print("Number of ratings in base set:", ratings_base.shape[0])
+    print("Number of ratings in test set:", ratings_test.shape[0])
+
+    # Create datasets
     base_dataset = MovieLensDataset(ratings_base)
     test_dataset = MovieLensDataset(ratings_test)
     
-    # Create test_loader instead of passing the dataset directly
+    # Create data loaders
     test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, pin_memory=True)
     train_loader = DataLoader(base_dataset, batch_size=64, shuffle=True, pin_memory=True)
-    # Initialize model
-    # n_factors=5 is best
+    
+    # Initialize and train model with n_factors=5
+    print("\nInitializing and training model with n_factors=5...")
     mf = MatrixFactorization(len(base_dataset.users), len(base_dataset.items), n_factors=5)
     
-    # Evaluate on test set using the loader
-    mf.train_model(train_loader=train_loader, n_epochs=100)  # Set model to training mode for evaluation
+    # Train model
+    print("\nTraining model...")
+    mf.train_model(train_loader=train_loader, n_epochs=100)
+    
+    # Evaluate on test set
+    print("\nEvaluating model...")
     test_loss = mf.evaluate(test_loader)
     test_rmse = np.sqrt(test_loss)
-    print(f"Initial test RMSE: {test_rmse:.4f}")
+    print(f"Test RMSE: {test_rmse:.4f}")
     
-    # # Uncomment to run parameter search
-    # n_factors_list = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
-    # batch_size = 64  
+    # Generate recommendations for some sample users
+    print("\nGenerating movie recommendations for sample users...")
+    sample_users = [1, 100, 200]  # Example user IDs
+    for user_id in sample_users:
+        try:
+            top_recommendations = calculate_top_n_recommendations(mf, base_dataset, user_id, n=5)
+            print(f"\nTop 5 recommendations for User {user_id}:")
+            for item_id, pred_rating in top_recommendations:
+                movie_title = items[items['movie id'] == item_id]['movie title'].values[0]
+                print(f"Movie: {movie_title} (ID: {item_id}), Predicted Rating: {pred_rating:.2f}")
+        except Exception as e:
+            print(f"Could not generate recommendations for User {user_id}: {str(e)}")
     
-    # # Perform K-fold cross-validation to find best parameters
-    # print("\nStarting K-fold cross-validation parameter search...")
-    # best_params = k_fold_cv_parameter_search(
-    #     base_dataset, 
-    #     n_factors_list=n_factors_list,
-    #     batch_size=batch_size,
-    #     n_folds=3,  # Using 3 folds for faster execution
-    #     n_epochs=5  # Fewer epochs during parameter search
-    # )
-    
-    # print("\n=== Best Parameters ===")
-    # print(f"n_factors: {best_params['n_factors']}")
-    # print(f"validation loss (MSE): {best_params['avg_val_loss']:.4f}")
-    # print(f"validation loss (RMSE): {best_params['rmse']:.4f}")
-    
-    # # Train final model with best parameters and evaluate on test set
-    # final_model, test_loss, test_rmse = train_and_evaluate_final_model(
-    #     base_dataset, test_dataset, best_params, batch_size=batch_size
-    # )
-    
-    # total_time = time.time() - total_start_time
-    # print(f"\nTotal execution time: {total_time/60:.2f} minutes")
-    
-    # print("\n=== Final Results ===")
-    # print(f"Test MSE: {test_loss:.4f}")
-    # print(f"Test RMSE: {test_rmse:.4f}")
-    
-    # print("\n=== Sample Recommendations ===")
-    # sample_users = [1, 100, 200]
-    # for user_id in sample_users:
-    #     try:
-    #         top_recommendations = calculate_top_n_recommendations(final_model, base_dataset, user_id, n=5)
-    #         print(f"\nTop 5 recommendations for User {user_id}:")
-    #         for item_id, pred_rating in top_recommendations:
-    #             movie_title = items[items['movie id'] == item_id]['movie title'].values[0]
-    #             print(f"Movie: {movie_title} (ID: {item_id}), Predicted Rating: {pred_rating:.2f}")
-    #     except Exception as e:
-    #         print(f"Could not generate recommendations for User {user_id}: {str(e)}")
+    total_time = time.time() - total_start_time
+    print(f"\nTotal execution time: {total_time/60:.2f} minutes")

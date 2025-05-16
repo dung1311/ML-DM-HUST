@@ -132,6 +132,8 @@ class HybridRecommender:
     
     
 if __name__ == "__main__":
+    # Comment out ml-100k code
+    """
     u_cols = ["user_id", "age", "sex", "occupation", "zip_code"]
     users = pd.read_csv("./data/ml-100k/u.user", sep="|", header=None, names=u_cols, encoding="latin-1")
     print("Number of users:", users.shape[0])
@@ -157,3 +159,39 @@ if __name__ == "__main__":
     # alpha, rmse = hybrid.find_optimal_alpha_with_cv(alpha_values=None, n_folds=5, save_plot=True, plot_name="alpha_vs_rmse")
     # print(f"Optimal alpha: {alpha} with RMSE: {rmse:.4f}")
     print(hybrid.evaluate_model(ratings_test, alpha=0.7))
+    """
+
+    # Load ml-1m dataset
+    print("Loading ml-1m dataset...")
+    
+    # Load users
+    users = pd.read_csv("./data/ml-1m/users.dat", sep="::", header=None, 
+                       names=["user_id", "gender", "age", "occupation", "zip_code"],
+                       engine='python', encoding='latin-1')
+    print("Number of users:", users.shape[0])
+
+    # Load ratings
+    ratings = pd.read_csv("./data/ml-1m/ratings.dat", sep="::", header=None,
+                         names=["user_id", "item_id", "rating", "timestamp"],
+                         engine='python', encoding='latin-1')
+    print("Total number of ratings:", ratings.shape[0])
+
+    # Load movies
+    items = pd.read_csv("./data/ml-1m/movies.dat", sep="::", header=None,
+                       names=["movie id", "movie title", "genres"],
+                       engine='python', encoding='latin-1')
+    print("Number of items:", items.shape[0])
+
+    # Split ratings into train and test (80-20)
+    from sklearn.model_selection import train_test_split
+    ratings_base, ratings_test = train_test_split(ratings, test_size=0.2, random_state=42)
+    print("Number of ratings in base set:", ratings_base.shape[0])
+    print("Number of ratings in test set:", ratings_test.shape[0])
+
+    # Create and evaluate model
+    print("\nCreating Hybrid Recommender model...")
+    hybrid = HybridRecommender(users, items, ratings_base, ratings_test)
+    
+    print("\nEvaluating model with alpha=0.7...")
+    rmse = hybrid.evaluate_model(ratings_test, alpha=0.7)
+    print("RMSE for alpha=0.7:", rmse)
