@@ -616,13 +616,13 @@ All deep learning models implement early stopping to prevent overfitting:
 All models generate plots to visualize performance:
 - RMSE vs hyperparameter values
 - Training and validation loss curves
-- Plots are saved in the 'plots' directory
+- Plots are saved in the 'results' directory
 
 ## Notes
 
 1. Models can use either ml-100k or ml-1m dataset
 2. GPU acceleration is used if available (PyTorch models)
-3. Results are saved in the 'plots' directory
+3. Results are saved in the 'results' directory
 4. Each model implements caching for similarity calculations to improve performance
 5. The hybrid model combines the strengths of user-based and item-based approaches
 6. Deep learning models (GMF, MLP, NeuMF, Caser) require PyTorch
