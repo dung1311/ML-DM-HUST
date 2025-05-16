@@ -12,7 +12,7 @@ def load_data():
     num_items = data['item_id'].nunique()
     return data, num_users, num_items
 
-# Chuyển đổi rating thành implicit feedback 
+
 data, num_users, num_items = load_data()
 data['interaction'] = 1
 
@@ -99,7 +99,3 @@ for epoch in range(20):
     print(f'Epoch {epoch+1}:')
     print(f'Train Loss: {train_loss/len(train_loader):.4f} | Test Loss: {test_loss/len(test_loader):.4f}')
 
-# 6. Dự đoán 
-def recommend(user_id, k=10):
-    user = torch.tensor([user_id]*num_items).to(device)
-    items = torch

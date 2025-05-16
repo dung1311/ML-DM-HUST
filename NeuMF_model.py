@@ -138,8 +138,8 @@ def train(net, train_iter, test_iter, loss_fn, optimizer,
 if __name__ == "__main__":
     # Siêu tham số
     batch_size = 1024
-    lr, num_epochs, wd = 0.01, 10, 1e-5
-    nums_hiddens = [10, 10, 10]
+    lr, num_epochs, wd = 0.0001, 50, 1e-3
+    nums_hiddens = [128, 64]
 
     # Thiết bị
     devices = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     test_iter = DataLoader(test_dataset, batch_size=batch_size)
 
     # Khởi tạo mô hình
-    net = NeuMF(10, num_users, num_items, nums_hiddens)
+    net = NeuMF(8, num_users, num_items, nums_hiddens)
     net.to(devices)
     for param in net.parameters():
         init.normal_(param, 0, 0.01)

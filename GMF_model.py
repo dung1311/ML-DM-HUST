@@ -5,16 +5,18 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset, DataLoader
 
 # 1. Chuẩn bị dữ liệu 
+# ----- Load data -----
 def load_data():
-    data = pd.read_csv('data/ml-100k/u.data', sep='\t',
-                       names=['user_id','item_id','rating','timestamp'])
-    num_users = data['user_id'].nunique()
-    num_items = data['item_id'].nunique()
-    return data, num_users, num_items
+    df = pd.read_csv('data/ml-100k/u.data', sep='\t', names=['user', 'item', 'rating', 'timestamp'])
+    df['label'] = df['rating'].astype(float)
+    user_map = {u: i for i, u in enumerate(df['user'].unique())}
+    item_map = {i: j for j, i in enumerate(df['item'].unique())}
+    df['user'] = df['user'].map(user_map)
+    df['item'] = df['item'].map(item_map)
+    return df, len(user_map), len(item_map)
 
-# Chuyển đổi sang implicit feedback (rating > 0 → 1)
 data, num_users, num_items = load_data()
-data['label'] = (data['rating'] > 0).astype(float)
+
 
 # 2. Tạo Dataset 
 class MovieLensDataset(Dataset):
@@ -36,13 +38,13 @@ class MovieLensDataset(Dataset):
 # Split data 
 train, test = train_test_split(data, test_size=0.2, random_state=42)
 train_dataset = MovieLensDataset(
-    train['user_id'].reset_index(drop=True),
-    train['item_id'].reset_index(drop=True),
+    train['user'].reset_index(drop=True),
+    train['item'].reset_index(drop=True),
     train['label'].reset_index(drop=True)
 )
 test_dataset = MovieLensDataset(
-    test['user_id'].reset_index(drop=True),
-    test['item_id'].reset_index(drop=True),
+    test['user'].reset_index(drop=True),
+    test['item'].reset_index(drop=True),
     test['label'].reset_index(drop=True)
 )
 
@@ -61,21 +63,28 @@ class GMF(nn.Module):
         out = self.output(x)
         return out.view(-1)
 
+# ----- RMSE Loss -----
+class RMSELoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.mse = nn.MSELoss()
 
+    def forward(self, yhat, y):
+        return torch.sqrt(self.mse(yhat, y))
 
 
 # 4. Khởi tạo model 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = GMF(num_users+1, num_items+1, embedding_dim=64).to(device)
-criterion = nn.BCELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+model = GMF(num_users+1, num_items+1, embed_dim=16).to(device)
+criterion = RMSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
 
 # 5. Training loop 
-batch_size = 1024
+batch_size = 128
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=batch_size)
 
-for epoch in range(20):
+for epoch in range(100):
     model.train()
     train_loss = 0
     for users, items, labels in train_loader:
