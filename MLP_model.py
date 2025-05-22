@@ -6,74 +6,78 @@ from torch.utils.data import Dataset, DataLoader
 
 # 1. Chuẩn bị dữ liệu 
 def load_data():
-    data = pd.read_csv('data/ml-100k/u.data', sep='\t', 
-                       names=['user_id','item_id','rating','timestamp'])
-    num_users = data['user_id'].nunique()
-    num_items = data['item_id'].nunique()
-    return data, num_users, num_items
+    df = pd.read_csv('data/ml-100k/u.data', sep='\t', names=['user_id', 'item_id', 'rating', 'timestamp'])
+    df['label'] = df['rating'].astype(float)
+    num_users = df['user_id'].nunique()
+    num_items = df['item_id'].nunique()
+    return df, num_users, num_items
 
 
 data, num_users, num_items = load_data()
-data['interaction'] = 1
+
 
 # 2. Tạo dataset 
 class MovieLensDataset(Dataset):
-    def __init__(self, users, items, interactions):
-        self.users = users
-        self.items = items
-        self.interactions = interactions
-        
+    def __init__(self, df):
+        self.users = torch.tensor(df['user_id'].values, dtype=torch.long)
+        self.items = torch.tensor(df['item_id'].values, dtype=torch.long)
+        self.labels = torch.tensor(df['label'].values, dtype=torch.float)
+
     def __len__(self):
         return len(self.users)
-    
-    def __getitem__(self, idx):
-        return (
-            torch.tensor(self.users[idx], dtype=torch.long),
-            torch.tensor(self.items[idx], dtype=torch.long),
-            torch.tensor(self.interactions[idx], dtype=torch.float)
-        )
 
+    def __getitem__(self, idx):
+        return self.users[idx], self.items[idx], self.labels[idx]
 # Split data
 train, test = train_test_split(data, test_size=0.2)
-train_dataset = MovieLensDataset(train['user_id'], train['item_id'], train['interaction'])
-test_dataset = MovieLensDataset(test['user_id'], test['item_id'], test['interaction'])
+
+train_loader = DataLoader(MovieLensDataset(train), batch_size=64, shuffle=True)
+val_loader = DataLoader(MovieLensDataset(test), batch_size=64)
 
 # 3. Định nghĩa MLP Model 
 class MLP(nn.Module):
-    def __init__(self, num_users, num_items, embedding_dim=64, hidden_dims=[128,64,32]):
+    def __init__(self, num_users, num_items, embedding_dim, hidden_units, dropout):
         super().__init__()
-        self.user_embed = nn.Embedding(num_users, embedding_dim)
-        self.item_embed = nn.Embedding(num_items, embedding_dim)
-        
-        self.layers = nn.Sequential(
-            nn.Linear(2*embedding_dim, hidden_dims[0]),
-            nn.ReLU(),
-            nn.Linear(hidden_dims[0], hidden_dims[1]),
-            nn.ReLU(),
-            nn.Linear(hidden_dims[1], hidden_dims[2]),
-            nn.ReLU(),
-            nn.Linear(hidden_dims[2], 1),
-            nn.Sigmoid()
-        )
-        
-    def forward(self, user, item):
-        user_vec = self.user_embed(user)
-        item_vec = self.item_embed(item)
-        concat = torch.cat([user_vec, item_vec], dim=-1)
-        return self.layers(concat)
+        self.user_embed = nn.Embedding(num_users + 1, embedding_dim)
+        self.item_embed = nn.Embedding(num_items + 1, embedding_dim)
 
+        layers = []
+        input_dim = embedding_dim * 2
+        for hidden in hidden_units:
+            layers.append(nn.Linear(input_dim, hidden))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(dropout))
+            input_dim = hidden
+        layers.append(nn.Linear(input_dim, 1))
+
+        self.mlp = nn.Sequential(*layers)
+
+    def forward(self, user, item):
+        u = self.user_embed(user)
+        i = self.item_embed(item)
+        x = torch.cat([u, i], dim=1)
+        return self.mlp(x).squeeze()
+
+class RMSELoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.mse = nn.MSELoss()
+
+    def forward(self, yhat, y):
+        return torch.sqrt(self.mse(yhat, y))
+    
 # 4. Khởi tạo model
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = MLP(num_users+1, num_items+1).to(device)
-criterion = nn.BCELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+model = MLP(num_users+1, num_items+1, 4, [128,64],0.2).to(device)
+criterion = RMSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.001)
 
 # 5. Training loop 
-batch_size = 1024
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=batch_size)
+batch_size = 64
+train_loader = DataLoader(MovieLensDataset(train), batch_size=batch_size, shuffle=True)
+test_loader = DataLoader(MovieLensDataset(test), batch_size=batch_size)
 
-for epoch in range(20):
+for epoch in range(100):
     model.train()
     train_loss = 0
     for users, items, labels in train_loader:

@@ -79,7 +79,7 @@ param_grid = {
     'learning_rate': [1e-4, 5e-4, 1e-3, 5e-3],
     'batch_size': [32, 64, 128],
     'weight_decay': [0, 1e-5, 1e-4, 1e-3],
-    'epochs': [20, 30, 50]
+    'epochs': [20, 30, 50, 100]
 }
 
 kf = KFold(n_splits=5, shuffle=True, random_state=42)

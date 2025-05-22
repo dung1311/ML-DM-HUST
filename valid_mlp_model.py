@@ -20,7 +20,7 @@ def load_data():
     return df, num_users, num_items
 
 data, num_users, num_items = load_data()
-train_df, val_df = train_test_split(data, test_size=0.2, random_state=42)
+
 
 # 2. Dataset class
 class MovieLensDataset(Dataset):
@@ -72,18 +72,17 @@ device = torch.device('cuda' )
 results = []
 best_loss = float('inf')
 best_params = None
-#kf = KFold(n_splits=5, shuffle=True, random_state=42)
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
 param_grid = {
-    'embedding_dim': [4, 8, 16, 32],
+    'embedding_dim': [4, 8, 16],
     'hidden_units': [
             [64, 32],
             [128, 64],
-            [64, 32, 16],
-            [128, 64, 32]],
-    'learning_rate': [1e-4, 5e-4, 1e-3, 5e-3],
+            [64, 32, 16]],
+    'learning_rate': [1e-4,  1e-3],
     'batch_size': [64, 128, 256],
-    'weight_decay': [0, 1e-5, 1e-4, 1e-3],
+    'weight_decay': [0, 1e-5, 1e-3],
     'dropout': [0.0, 0.2, 0.4],
     'epochs': [20, 50, 100]
 }
@@ -95,64 +94,64 @@ for emb_dim in param_grid['embedding_dim']:
                 for wd in param_grid['weight_decay']:
                     for drop in param_grid['dropout']:
                         for epoch in param_grid['epochs']:
-                            #fold_losses = []
+                            fold_losses = []
 
-                            '''for fold, (train_idx, val_idx) in enumerate(kf.split(data)):
+                            for fold, (train_idx, val_idx) in enumerate(kf.split(data)):
                                 train_df_fold = data.iloc[train_idx]
-                                val_df_fold = data.iloc[val_idx]'''
+                                val_df_fold = data.iloc[val_idx]
 
-                            train_loader = DataLoader(MovieLensDataset(train_df), batch_size=bs, shuffle=True)
-                            val_loader = DataLoader(MovieLensDataset(val_df), batch_size=bs)
+                                train_loader = DataLoader(MovieLensDataset(train_df_fold), batch_size=bs, shuffle=True)
+                                val_loader = DataLoader(MovieLensDataset(val_df_fold), batch_size=bs)
 
-                            model = MLP(num_users, num_items, emb_dim, hidden, drop).to(device)
-                            criterion = RMSELoss()
-                            optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
+                                model = MLP(num_users, num_items, emb_dim, hidden, drop).to(device)
+                                criterion = RMSELoss()
+                                optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
 
-                            for epoch in range(epoch):
-                                model.train()
-                                for users, items, labels in train_loader:
-                                    users, items, labels = users.to(device), items.to(device), labels.to(device)
-                                    optimizer.zero_grad()
-                                    outputs = model(users, items)
-                                    loss = criterion(outputs, labels)
-                                    loss.backward()
-                                    optimizer.step()
+                                for epoch in range(epoch):
+                                    model.train()
+                                    for users, items, labels in train_loader:
+                                        users, items, labels = users.to(device), items.to(device), labels.to(device)
+                                        optimizer.zero_grad()
+                                        outputs = model(users, items)
+                                        loss = criterion(outputs, labels)
+                                        loss.backward()
+                                        optimizer.step()
 
-                            model.eval()
-                            val_loss = 0
-                            with torch.no_grad():
-                                for users, items, labels in val_loader:
-                                    users, items, labels = users.to(device), items.to(device), labels.to(device)
-                                    outputs = model(users, items)
-                                    val_loss += criterion(outputs, labels).item()
-                            val_loss /= len(val_loader)
-                            #fold_losses.append(val_loss)
+                                model.eval()
+                                val_loss = 0
+                                with torch.no_grad():
+                                    for users, items, labels in val_loader:
+                                        users, items, labels = users.to(device), items.to(device), labels.to(device)
+                                        outputs = model(users, items)
+                                        val_loss += criterion(outputs, labels).item()
+                                val_loss /= len(val_loader)
+                                fold_losses.append(val_loss)
 
-                            #avg_val_loss = sum(fold_losses) / len(fold_losses)
-                            print(f" Embedding={emb_dim}, Hidden={hidden}, LR={lr}, BS={bs}, WD={wd}, Dropout={drop},epoch={epoch} → Val Loss={val_loss:.4f}")
+                                avg_val_loss = sum(fold_losses) / len(fold_losses)
+                                print(f" Embedding={emb_dim}, Hidden={hidden}, LR={lr}, BS={bs}, WD={wd}, Dropout={drop},epoch={epoch+1} → Val Loss={val_loss:.4f}")
 
-                            results.append({
-                                'embedding_dim': emb_dim,
-                                'hidden_units': hidden,
-                                'learning_rate': lr,
-                                'batch_size': bs,
-                                'weight_decay': wd,
-                                'dropout': drop,
-                                'epoch': epoch,
-                                'val_loss': val_loss
-                            })
-
-                            if val_loss < best_loss:
-                                best_loss = val_loss
-                                best_params = {
+                                results.append({
                                     'embedding_dim': emb_dim,
                                     'hidden_units': hidden,
                                     'learning_rate': lr,
                                     'batch_size': bs,
                                     'weight_decay': wd,
                                     'dropout': drop,
-                                    'epoch': epoch
-                                }
+                                    'epoch': epoch,
+                                    'val_loss': avg_val_loss
+                                })
+
+                                if avg_val_loss < best_loss:
+                                    best_loss = avg_val_loss
+                                    best_params = {
+                                        'embedding_dim': emb_dim,
+                                        'hidden_units': hidden,
+                                        'learning_rate': lr,
+                                        'batch_size': bs,
+                                        'weight_decay': wd,
+                                        'dropout': drop,
+                                        'epoch': epoch
+                                    }
 
 # 5. Best result
 print("\nBest Hyperparameters:")
@@ -162,6 +161,7 @@ print(f"→ Best Validation RMSE: {best_loss:.4f}")
 # 6. Plot
 df_results = pd.DataFrame(results)
 sns.set(style="whitegrid")
+df_results['hidden_units'] = df_results['hidden_units'].apply(lambda x: str(x))
 fig, axes = plt.subplots(3, 3, figsize=(18, 12))
 param_names = ['embedding_dim', 'hidden_units', 'learning_rate', 'batch_size', 'weight_decay', 'dropout', 'epoch']
 
