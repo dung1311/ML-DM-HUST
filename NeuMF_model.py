@@ -70,7 +70,7 @@ def load_data(data, num_users, num_items, feedback='explicit'):
 
 # === Mô hình NeuMF cho hồi quy ===
 class NeuMF(nn.Module):
-    def __init__(self, num_factors, num_users, num_items, nums_hiddens):
+    def __init__(self, num_factors, num_users, num_items, nums_hiddens, drop):
         super(NeuMF, self).__init__()
         self.P = nn.Embedding(num_users, num_factors)
         self.Q = nn.Embedding(num_items, num_factors)
@@ -81,6 +81,7 @@ class NeuMF(nn.Module):
             in_features = num_factors * 2 if i == 0 else nums_hiddens[i-1]
             self.mlp.add_module(f'dense_{i}', nn.Linear(in_features, num_hidden))
             self.mlp.add_module(f'relu_{i}', nn.ReLU())
+            self.mlp.add_module(f'dropout_{i}', nn.Dropout(drop))
         self.prediction_layer = nn.Linear(nums_hiddens[-1] + num_factors, 1)
 
     def forward(self, user_id, item_id):
@@ -138,8 +139,8 @@ def train(net, train_iter, test_iter, loss_fn, optimizer,
 if __name__ == "__main__":
     # Siêu tham số
     batch_size = 1024
-    lr, num_epochs, wd = 0.0001, 50, 1e-3
-    nums_hiddens = [128, 64]
+    lr, num_epochs, wd = 0.0001, 100, 0
+    nums_hiddens = [64, 32, 16]
 
     # Thiết bị
     devices = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -156,7 +157,7 @@ if __name__ == "__main__":
     test_iter = DataLoader(test_dataset, batch_size=batch_size)
 
     # Khởi tạo mô hình
-    net = NeuMF(8, num_users, num_items, nums_hiddens)
+    net = NeuMF(64, num_users, num_items, nums_hiddens)
     net.to(devices)
     for param in net.parameters():
         init.normal_(param, 0, 0.01)
